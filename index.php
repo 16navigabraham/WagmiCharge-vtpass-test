@@ -37,8 +37,8 @@ curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_HTTPHEADER, array(
- "api-key: b64a50d68e194a6d201dd391e04043e0",
-    "secret-key: SK_31126dd675991f997d3bb431cfdb313a10479b87b5a",
+ "api-key: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    "secret-key: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx",
     "Content-Type: application/json"
 ));
 // After executing the request
