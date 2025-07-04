@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>VTpass Airtime & Data Tester</title>
+  <style>
+    body { font-family: Arial; margin: 20px; }
+    select, input, button { margin: 4px; padding: 8px; }
+    #plansContainer { margin-top: 12px; }
+    #output { white-space: pre-wrap; margin-top: 20px; background: #f4f4f4; padding: 10px; border-radius: 4px; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <h1>VTpass Airtime & Data Tester</h1>
+
+  <label>Type:</label>
+  <select id="type">
+    <option value="airtime">Airtime</option>
+    <option value="data">Data</option>
+  </select>
+
+  <label>Network:</label>
+  <select id="network">
+    <option value="mtn">MTN</option>
+    <option value="airtel">Airtel</option>
+    <option value="glo">Glo</option>
+    <option value="9mobile">9Mobile</option>
+  </select>
+
+  <button id="loadBtn" class="hidden">Load Data Plans</button>
+  <div id="plansContainer" class="hidden">
+    <h3>Select Data Plan</h3>
+  </div>
+
+  <div id="amountContainer">
+    <label>Amount (NGN):</label>
+    <input id="amount" type="number" value="100" />
+  </div>
+
+  <div>
+    <label>Phone:</label>
+    <input id="phone" type="text" value="08011111111" />
+  </div>
+
+  <button id="buyBtn">Buy</button>
+  <div id="output"></div>
+
+  <script>
+    const typeSel = document.getElementById('type');
+    const loadBtn = document.getElementById('loadBtn');
+    const plansContainer = document.getElementById('plansContainer');
+    const amountContainer = document.getElementById('amountContainer');
+    const buyBtn = document.getElementById('buyBtn');
+    const output = document.getElementById('output');
+    let selectedPlan = null;
+
+    function refreshUI() {
+      if (typeSel.value === 'data') {
+        loadBtn.classList.remove('hidden');
+        plansContainer.classList.remove('hidden');
+        amountContainer.classList.add('hidden');
+      } else {
+        loadBtn.classList.add('hidden');
+        plansContainer.classList.add('hidden');
+        amountContainer.classList.remove('hidden');
+        selectedPlan = null;
+        plansContainer.innerHTML = '';
+      }
+      output.textContent = '';
+    }
+
+    typeSel.addEventListener('change', refreshUI);
+    refreshUI();
+
+    loadBtn.addEventListener('click', async () => {
+      const network = document.getElementById('network').value;
+      output.textContent = 'Loading data plans...';
+      const res = await fetch(`/plans/data/${network}`);
+      const json = await res.json();
+      const variations = json.content?.variations || [];
+
+      plansContainer.innerHTML = variations.map(v =>
+        `<div>
+          <input type="radio" name="plan" value="${v.variation_code}" />
+          ${v.name} — ₦${v.variation_amount}
+        </div>`
+      ).join('');
+
+      document.getElementsByName('plan').forEach(r => {
+        r.addEventListener('change', () => {
+          selectedPlan = r.value;
+          output.textContent = '';
+        });
+      });
+
+      output.textContent = '';
+    });
+
+    buyBtn.addEventListener('click', async () => {
+      const type = typeSel.value;
+      const network = document.getElementById('network').value;
+      const phone = document.getElementById('phone').value.trim();
+
+      if (!phone) return alert('Enter a phone number');
+
+      const payload = {
+        phone,
+        serviceID: type === 'data' ? `${network}-data` : network
+      };
+
+      if (type === 'data') {
+        if (!selectedPlan) return alert('Select a data plan');
+        payload.variation_code = selectedPlan;
+      } else {
+        const amt = document.getElementById('amount').value;
+        if (!amt) return alert('Enter an amount for airtime');
+        payload.amount = amt;
+      }
+
+      output.textContent = 'Processing…';
+      const resp = await fetch('/buy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      output.textContent = JSON.stringify(await resp.json(), null, 2);
+    });
+  </script>
+</body>
+</html>

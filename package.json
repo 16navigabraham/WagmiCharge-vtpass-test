@@ -1,0 +1,22 @@
+{
+  "name": "vtpass-test",
+  "version": "1.0.0",
+  "description": "Sandbox integration for VTpass airtime VTU API",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [
+    "vtpass",
+    "vtpass-test",
+    "airtime",
+    "vtpass-vtu"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.10.0",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2"
+  }
+}

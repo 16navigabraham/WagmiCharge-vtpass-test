@@ -1,0 +1,28 @@
+# Dependencies
+/node_modules/
+/.pnp/
+/.pnp.js
+.yarn/install-state.gz
+
+# Build output & cache
+/.next/
+/out/
+/build
+/coverage
+
+# Environment
+.env*
+*.pem
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Misc
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
+
+# Vercel
+.vercel
