@@ -1,7 +1,7 @@
 {
   "name": "vtpass-test",
   "version": "1.0.0",
-  "description": "Sandbox integration for VTpass airtime VTU API",
+  "description": "Live integration for VTpass airtime VTU API",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"

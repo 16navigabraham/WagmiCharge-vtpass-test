@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>VTpass Airtime & Data Tester</title>
+  <title>VTpass Airtime & Data Live Tester</title>
   <style>
     body { font-family: Arial; margin: 20px; }
     select, input, button { margin: 4px; padding: 8px; }
@@ -12,7 +12,10 @@
   </style>
 </head>
 <body>
-  <h1>VTpass Airtime & Data Tester</h1>
+  <h1>VTpass Airtime & Data Live Tester</h1>
+
+  <button id="listServicesBtn">List Available Services</button>
+  <pre id="servicesOutput"></pre>
 
   <label>Type:</label>
   <select id="type">
@@ -53,8 +56,14 @@
     const amountContainer = document.getElementById('amountContainer');
     const buyBtn = document.getElementById('buyBtn');
     const output = document.getElementById('output');
-    let selectedPlan = null;
 
+    document.getElementById('listServicesBtn').onclick = async () => {
+      const res = await fetch('/services');
+      document.getElementById('servicesOutput').textContent =
+        JSON.stringify(await res.json(), null, 2);
+    };
+
+    let selectedPlan = null;
     function refreshUI() {
       if (typeSel.value === 'data') {
         loadBtn.classList.remove('hidden');
@@ -69,60 +78,50 @@
       }
       output.textContent = '';
     }
-
     typeSel.addEventListener('change', refreshUI);
     refreshUI();
 
     loadBtn.addEventListener('click', async () => {
-      const network = document.getElementById('network').value;
       output.textContent = 'Loading data plans...';
-      const res = await fetch(`/plans/data/${network}`);
+      const res = await fetch(`/plans/data/${document.getElementById('network').value}`);
       const json = await res.json();
       const variations = json.content?.variations || [];
-
       plansContainer.innerHTML = variations.map(v =>
         `<div>
           <input type="radio" name="plan" value="${v.variation_code}" />
           ${v.name} — ₦${v.variation_amount}
         </div>`
       ).join('');
-
       document.getElementsByName('plan').forEach(r => {
-        r.addEventListener('change', () => {
-          selectedPlan = r.value;
-          output.textContent = '';
-        });
+        r.onclick = () => { selectedPlan = r.value; output.textContent = ''; };
       });
-
       output.textContent = '';
     });
 
     buyBtn.addEventListener('click', async () => {
-      const type = typeSel.value;
-      const network = document.getElementById('network').value;
       const phone = document.getElementById('phone').value.trim();
-
       if (!phone) return alert('Enter a phone number');
 
       const payload = {
         phone,
-        serviceID: type === 'data' ? `${network}-data` : network
+        serviceID: typeSel.value === 'data'
+          ? `${document.getElementById('network').value}-data`
+          : document.getElementById('network').value
       };
-
-      if (type === 'data') {
+      if (typeSel.value === 'data') {
         if (!selectedPlan) return alert('Select a data plan');
         payload.variation_code = selectedPlan;
       } else {
         const amt = document.getElementById('amount').value;
-        if (!amt) return alert('Enter an amount for airtime');
+        if (!amt) return alert('Enter amount');
         payload.amount = amt;
       }
 
       output.textContent = 'Processing…';
       const resp = await fetch('/buy', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
       });
       output.textContent = JSON.stringify(await resp.json(), null, 2);
     });

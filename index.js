@@ -6,7 +6,7 @@ const path = require("path");
 const app = express();
 app.use(express.json());
 
-const sandbox = "https://sandbox.vtpass.com/api";
+const LIVE_BASE = "https://vtpass.com/api";
 
 // Generate request_id with Africa/Lagos time prefix
 function generateRequestId(suffix = "") {
@@ -19,18 +19,23 @@ function generateRequestId(suffix = "") {
   const parts = fmt.formatToParts(now);
   const map = Object.fromEntries(parts.map(p => [p.type, p.value]));
   const prefix = map.year + map.month + map.day + map.hour + map.minute;
-  const randomSuffix = suffix || Math.random().toString(36).slice(2, 10);
-  return prefix + randomSuffix;
+  return prefix + (suffix || Math.random().toString(36).slice(2, 10));
 }
 
-app.get("/", (_req, res) => res.send("VTpass Sandbox Server is running!"));
-app.get("/test", (_req, res) => res.sendFile(path.join(__dirname, "index.html")));
+// Root health check
+app.get("/", (_req, res) => res.send("VTpass live Server is running!"));
 
-app.get("/plans/data/:network", async (req, res) => {
-  const serviceID = `${req.params.network}-data`;
+// Serve test HTML
+app.get("/live", (_req, res) => res.sendFile(path.join(__dirname, "index.html")));
+
+// List available service categories
+app.get("/services", async (_req, res) => {
   try {
-    const resp = await axios.get(`${sandbox}/service-variations?serviceID=${serviceID}`, {
-      headers: { "api-key": process.env.VT_API_KEY, "public-key": process.env.VT_PUBLIC_KEY }
+    const resp = await axios.get(`${LIVE_BASE}/service-categories`, {
+      headers: {
+        "api-key": process.env.VT_API_KEY,
+        "public-key": process.env.VT_PUBLIC_KEY
+      }
     });
     res.json(resp.data);
   } catch (err) {
@@ -38,26 +43,39 @@ app.get("/plans/data/:network", async (req, res) => {
   }
 });
 
+// Fetch data plans for a given network
+app.get("/plans/data/:network", async (req, res) => {
+  const serviceID = `${req.params.network}-data`;
+  try {
+    const resp = await axios.get(`${LIVE_BASE}/service-variations?serviceID=${serviceID}`, {
+      headers: {
+        "api-key": process.env.VT_API_KEY,
+        "public-key": process.env.VT_PUBLIC_KEY
+      }
+    });
+    res.json(resp.data);
+  } catch (err) {
+    res.status(500).json({ error: err.response?.data || err.message });
+  }
+});
+
+// Purchase airtime or data
 app.post("/buy", async (req, res) => {
   const { phone, serviceID, amount, variation_code } = req.body;
   const request_id = generateRequestId();
   const payload = { request_id, serviceID, phone };
 
-  if (variation_code) {
-    payload.variation_code = variation_code;
-  } else if (amount) {
-    payload.amount = amount;
-  } else {
-    return res.status(400).json({ error: "Missing amount or variation_code" });
-  }
+  if (variation_code) payload.variation_code = variation_code;
+  else if (amount) payload.amount = amount;
+  else return res.status(400).json({ error: "Missing amount or variation_code" });
 
   try {
-    const resp = await axios.post(`${sandbox}/pay`, payload, {
+    const resp = await axios.post(`${LIVE_BASE}/pay`, payload, {
       headers: {
         "api-key": process.env.VT_API_KEY,
         "secret-key": process.env.VT_SECRET_KEY,
         "Content-Type": "application/json",
-      },
+      }
     });
     res.json(resp.data);
   } catch (err) {
@@ -65,16 +83,17 @@ app.post("/buy", async (req, res) => {
   }
 });
 
+// Requery transaction status
 app.post("/requery", async (req, res) => {
   try {
-    const resp = await axios.post(`${sandbox}/requery`, {
+    const resp = await axios.post(`${LIVE_BASE}/requery`, {
       request_id: req.body.request_id
     }, {
       headers: {
         "api-key": process.env.VT_API_KEY,
         "secret-key": process.env.VT_SECRET_KEY,
         "Content-Type": "application/json",
-      },
+      }
     });
     res.json(resp.data);
   } catch (err) {
@@ -83,3 +102,4 @@ app.post("/requery", async (req, res) => {
 });
 
 app.listen(3000, () => console.log("Server running at http://localhost:3000"));
+// Serve static files from the public directory
